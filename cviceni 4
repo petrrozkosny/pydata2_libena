@@ -1,0 +1,43 @@
+import pandas as pd
+import ipywidgets as widgets
+from matplotlib import pyplot as plt
+output = widgets.Output()
+
+df = pd.read_csv('https://raw.githubusercontent.com/petrrozkosny/pydata/main/pydata_data.csv',delimiter=';')
+df_lokality = pd.read_csv('https://raw.githubusercontent.com/petrrozkosny/pydata/main/pydata_data_lokality.csv',delimiter=';')
+df['DATE'] = pd.to_datetime(df['DATE'])
+df['ROK'] = df['DATE'].dt.year
+df['MESIC'] = df['DATE'].dt.month
+
+def aktualizuj_roky(change):    
+    roky = df.loc[df['NAME']==change['new'],'ROK'].sort_values().unique()    
+    vyber_rok.options = roky
+    vyber_rok.disabled = False
+
+def exportuj_df(change):
+    df_filtrovano = df.loc[(df['NAME'] == vyber_lokality.value) & (df['ROK'] == vyber_rok.value )]
+    df_filtrovano.to_csv('data.csv')
+    print('Soubor vytvoren')
+
+def zobraz_graf(change):
+    df_filtrovano = df.loc[(df['NAME'] == vyber_lokality.value) & (df['ROK'] == vyber_rok.value )]
+    df_filtrovano = df_filtrovano.groupby(by=['MESIC'],as_index=False)['PRCP'].sum()
+    plt.plot(df_filtrovano['MESIC'],df_filtrovano['PRCP'])
+    with output:
+        output.clear_output(wait=True)
+        plt.show()
+
+lokality = df['NAME'].sort_values().unique()
+roky = []
+vyber_lokality = widgets.Dropdown(options=lokality)
+vyber_rok = widgets.Dropdown(options=roky,disabled=True)
+tlacitko_export = widgets.Button(description = 'Exportovat data')
+tlacitko_zobraz = widgets.Button(description = 'Zobraz graf')
+
+tlacitko_export.on_click(exportuj_df)
+tlacitko_zobraz.on_click(zobraz_graf)
+box = widgets.HBox([vyber_lokality,vyber_rok,tlacitko_export,tlacitko_zobraz])
+
+vyber_lokality.observe(aktualizuj_roky,names='value')
+display(box,output)
+
